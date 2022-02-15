@@ -104,19 +104,3 @@ def expand_line(line)
     end
 end
 
-# CLI PARTS
-if ARGV.size != 1
-    STDERR.puts "Give the target file as the single parameter"
-    exit 1
-end
-
-target = ARGV[0]
-begin
-    puts cat_file target
-rescue ex : CompileException
-    STDERR.puts ex.error
-    ex.stack.each do |s|
-        STDERR.puts "in #{s[:file]}:#{s[:line]}"
-    end
-end
-

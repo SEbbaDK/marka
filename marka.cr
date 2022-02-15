@@ -2,10 +2,10 @@
 
 require "option_parser"
 
+require "./combiner"
 
 # OPTION PARSING
 
-combiner = ENV["COMBINER"]? || "./combiner.cr"
 filters = [] of Path
 silent = false
 latex_output = false
@@ -71,7 +71,16 @@ end
 
 target = ARGV[0]
 puts "Running Combiner on #{target}" if ! silent
-input = `#{combiner} #{target}`
+begin
+    input = cat_file target
+rescue ex : CompileException
+    STDERR.puts ex.error
+    ex.stack.each do |s|
+        STDERR.puts "in #{s[:file]}:#{s[:line]}"
+    end
+    exit 4
+end
+
 
 add_bib = File.exists? "bibliography.bib"
 #if ! (/# Bibliography/ =~ input) && /\[@/ =~ input

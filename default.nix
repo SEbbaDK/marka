@@ -10,7 +10,6 @@ pkgs.stdenv.mkDerivation {
 	];
 
 	nativeBuildInputs = [
-		pkgs.lua53Packages.lpeg
 		pkgs.pandoc
 	];
 
