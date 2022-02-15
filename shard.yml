@@ -1,0 +1,22 @@
+name: marka
+version: 0.2.0
+
+authors:
+    - sebbadk <sebastian@sebba.dk>
+
+description: |
+    Document rendering system based on pandoc and latex
+
+dependencies:
+    inotify:
+        github: petoem/inotify.cr
+        version: 1.0.3
+
+targets:
+    marka:
+        main: marka.cr
+    marka-combiner:
+        main: marka-combiner.cr
+
+license: GPLv3
+

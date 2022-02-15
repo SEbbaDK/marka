@@ -1,13 +1,19 @@
 { pkgs ? import <nixpkgs> {} }:
-pkgs.stdenv.mkDerivation {
+let
+    shard = builtins.readFile ./shard.yml;
+    version = builtins.head (builtins.match ".*\nversion: ([0-9.]+).*" shard);
+in
+pkgs.crystal.buildCrystalPackage {
 	pname = "marka";
-	version = "v0.1";
+	inherit version;
 
 	src = ./.;
 
-	buildInputs = [
-    	pkgs.crystal
-	];
+	format = "shards";
+	lockFile = ./shard.lock;
+	shardsFile = ./shards.nix;
+
+	docCheck = false;
 
 	nativeBuildInputs = [
 		pkgs.pandoc
