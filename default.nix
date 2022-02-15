@@ -9,6 +9,12 @@ pkgs.stdenv.mkDerivation {
     	pkgs.crystal
 	];
 
+	nativeBuildInputs = [
+    	lua
+		lua.lpeg
+		pandoc
+	]
+
 	buildPhase = ''
 		crystal build marka.cr
 	'';
