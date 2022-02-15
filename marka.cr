@@ -9,6 +9,7 @@ combiner = ENV["COMBINER"]? || "./combiner.cr"
 filters = [] of Path
 silent = false
 latex_output = false
+beamer_output = false
 output_file = "result.pdf"
 
 OptionParser.parse do |p|
@@ -42,6 +43,10 @@ OptionParser.parse do |p|
     
     p.on("-l", "--latex", "Outputs latex instead of rending to a pdf file") do
         latex_output = true
+    end
+    
+    p.on("-b", "--beamer", "Outputs in beamer-mode") do
+        beamer_output = true
     end
     
     p.on("-o FILE", "--output=FILE", "Sets the file that's rendered to (default: result.pdf)") do |file|
@@ -98,6 +103,10 @@ end
 if add_bib
     args << "--bibliography=./bibliography.bib"
     args << "--citeproc"
+end
+
+if beamer_output
+    args << "--to=beamer"
 end
 
 proc = Process.new(
