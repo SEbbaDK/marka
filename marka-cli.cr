@@ -1,8 +1,10 @@
 #!/usr/bin/env crystal
 
 require "option_parser"
+require "inotify"
 
 require "./marka"
+require "./explorer"
 
 marka = Marka.new
 
@@ -81,9 +83,41 @@ marka.bibliography = bib if File.exists? bib
 meta = target.sibling "meta.yml"
 marka.meta = meta if File.exists? meta
 
-result = marka.render target
-if !result.success?
-    STDERR.puts "Pandoc failed with status: #{result.exit_code}"
-    exit 2
+def render(m, t)
+    result = m.render t
+    if !result.success?
+        STDERR.puts "Pandoc failed with status: #{result.exit_code}"
+        exit 2
+    end
+end
+
+render marka, target
+
+if watch_mode
+    while true
+        files = [ target ] + Explorer.explore target
+        
+        channel = Channel(Path).new
+        
+        watchers = files.map do |file|
+            Inotify.watch file.to_s do |event|
+                if event.type.modify?
+                    channel.send(file)
+                end
+            end
+        end
+        
+        change = channel.receive
+        
+        watchers.each do |w|
+            w.close
+        end
+        
+        channel.close
+        
+        puts "Rerendering because #{change} changed"
+        
+        render marka, target
+    end
 end
 

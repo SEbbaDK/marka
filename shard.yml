@@ -14,9 +14,9 @@ dependencies:
 
 targets:
     marka:
-        main: marka.cr
+        main: marka-cli.cr
     marka-combiner:
-        main: marka-combiner.cr
+        main: combiner-cli.cr
 
 license: GPLv3
 
