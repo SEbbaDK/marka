@@ -18,15 +18,4 @@ pkgs.crystal.buildCrystalPackage {
 	nativeBuildInputs = [
 		pkgs.pandoc
 	];
-
-	buildPhase = ''
-		crystal build --release --progress --verbose marka.cr
-		crystal build --release --progress --verbose marka-combiner.cr
-	'';
-
-	installPhase = ''
-		mkdir -p $out/bin
-		mv marka $out/bin/
-		mv marka-combiner $out/bin/
-	'';
 }
