@@ -13,7 +13,7 @@ pkgs.crystal.buildCrystalPackage {
 	lockFile = ./shard.lock;
 	shardsFile = ./shards.nix;
 
-	docCheck = false;
+	doCheck = false;
 
 	nativeBuildInputs = [
 		pkgs.pandoc
