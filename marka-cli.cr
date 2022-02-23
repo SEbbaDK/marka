@@ -26,7 +26,7 @@ OptionParser.parse do |p|
         if Dir.exists? filter
             Dir.each filter do |file|
                 if file.includes? ".lua"
-                    marka.filters << Path.new file
+                    marka.filters << (filter / Path.new file)
                 end
             end
         elsif File.exists? filter
