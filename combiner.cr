@@ -52,7 +52,20 @@ module Combiner
 		Regex
 	end
 	
-    def cat_file_from_to(from, to, file : Path, include_edges = true, search_mode = SearchMode::Equality)
+	def match?(search_mode : SearchMode, a, b)
+    	case search_mode
+        when SearchMode::Equality
+            a == b
+        when SearchMode::SubString
+            a.includes? b
+        when SearchMode::Regex
+            a =~ b
+        else
+            raise Exception.new "Internal Error: Unknown SearchMode"
+        end
+	end
+	
+    def cat_file_from_to(from, to, file : Path, search_mode : SearchMode, include_edges = true)
         result = ""
         in_block = false
         found = false
@@ -61,26 +74,19 @@ module Combiner
         File.each_line file do |line|
             begin
                 stripline = line.rstrip()
-                case search_mode
-                when SearchMode::Equality
-                    in_block = true if stripline == from
-                when SearchMode::SubString
-                    in_block = true if stripline.includes? from
-                when SearchMode::Regex
-                    in_block = true if stripline =~ from
-                end
+                starting = match? search_mode, stripline, from
+                ending = match? search_mode, stripline, to
+                
+                in_block = true if starting && include_edges && !found
+                in_block = false if in_block && ending && !include_edges
             
                 result += expand_line(file, line) + '\n' if in_block
+                
+                in_block = true if starting && !found
+                in_block = false if ending && found
+                
                 found = true if in_block
                 
-                case search_mode
-                when SearchMode::Equality
-                    in_block = false if stripline == to
-                when SearchMode::SubString
-                    in_block = false if stripline.includes? to
-                when SearchMode::Regex
-                    in_block = false if stripline =~ to
-                end
             rescue ex : CompileException
                 raise ex.add_stack file, l
             end
@@ -152,7 +158,7 @@ module Combiner
                     raise CompileException.new "#{line}: No module name given for kmodule selector: #{selector}"
                 else
                     modulename = split[1]
-                    return cat_file_from_to "module #{modulename}", "endmodule", filename
+                    return cat_file_from_to "module #{modulename}", "endmodule", filename, search_mode = SearchMode::Equality
                 end
                 
             else

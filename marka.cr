@@ -2,7 +2,7 @@ require "./combiner"
 
 class Marka
     property filters = [] of Path
-    property silent = false
+    property silent = true
     property latex_output = false
     property beamer_output = false
     property output_file = "result.pdf"
@@ -11,15 +11,15 @@ class Marka
     property extra_pandoc_args = [] of String
     
     def render(file)
-        puts "Running Combiner on #{file}" if ! silent
+        puts "Running Combiner on #{file}" unless silent
         input = Combiner.combine file
 
         if ! bibliography.nil?
-            puts "Adding bibliography header" if ! silent
+            puts "Adding bibliography header" unless silent
             input += "\n# Bibliography\n"
         end
         
-        puts "Running Pandoc" if ! silent
+        puts "Running Pandoc" unless silent
         pipe = IO::Memory.new input
         if latex_output
             output = "--to=latex"

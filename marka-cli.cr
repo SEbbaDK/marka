@@ -37,8 +37,8 @@ OptionParser.parse do |p|
         end
     end
     
-    p.on("-s", "--silent", "Disables printing status messages") do
-        marka.silent = true
+    p.on("-v", "--verbose", "Enables printing status messages") do
+        marka.silent = false
     end
     
     p.on("-l", "--latex", "Outputs latex instead of rending to a pdf file") do
@@ -113,7 +113,12 @@ else
         watchers = files.map do |file|
             Inotify.watch file.to_s do |event|
                 if event.type.modify?
-                    channel.send(file)
+                    #puts "#{file} was modified"
+                    begin
+                        channel.send(file)
+                    rescue Channel::ClosedError
+                        # Just do nothing when the channel is closed out
+                    end
                 end
             end
         end
@@ -127,8 +132,6 @@ else
         channel.close
         
         puts "Rerendering because #{change} changed"
-        
-        render marka, target
     end
 end
 
