@@ -55,7 +55,7 @@ module Combiner
         File.each_line file do |line|
             begin
                 stripline = line.strip()
-                in_block = true if stripline == from
+                in_block = true if stripline.includes? from
             
                 result += expand_line(file, line) + '\n' if in_block
                 found = true if in_block
