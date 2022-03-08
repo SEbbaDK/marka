@@ -84,17 +84,28 @@ meta = target.sibling "meta.yml"
 marka.meta = meta if File.exists? meta
 
 def render(m, t)
-    result = m.render t
+    
+    begin
+        result = m.render t
+    rescue ex : Combiner::CompileException
+        STDERR.puts ex.stacked_error
+        return 1
+    end
+    
     if !result.success?
         STDERR.puts "Pandoc failed with status: #{result.exit_code}"
-        exit 2
+        return 2
     end
+    
+    return 0
 end
 
-render marka, target
-
-if watch_mode
+unless watch_mode
+    exit (render marka, target)
+else
     while true
+        render marka, target
+
         files = [ target ] + Explorer.explore target
         
         channel = Channel(Path).new
