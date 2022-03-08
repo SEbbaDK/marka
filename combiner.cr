@@ -46,7 +46,13 @@ module Combiner
         return result
     end
 
-    def cat_file_from_to(from, to, file : Path, include_edges = true)
+	enum SearchMode
+		EqualitySearch
+		SubStringSearch
+		RegexSearch
+	end
+	
+    def cat_file_from_to(from, to, file : Path, include_edges = true, search_mode = EqualitySearch)
         result = ""
         in_block = false
         found = false
@@ -55,12 +61,26 @@ module Combiner
         File.each_line file do |line|
             begin
                 stripline = line.strip()
-                in_block = true if stripline.includes? from
+                case search_mode
+                when EqualitySearch
+                    in_block = true if stripline == from
+                when SubStringSearch
+                    in_block = true if stripline.includes? from
+                when RegexSearch
+                    in_block = true if stripline =~ from
+                end
             
                 result += expand_line(file, line) + '\n' if in_block
                 found = true if in_block
                 
-                in_block = false if stripline == to
+                case search_mode
+                when EqualitySearch
+                    in_block = false if stripline == to
+                when SubStringSearch
+                    in_block = false if stripline.includes? to
+                when RegexSearch
+                    in_block = false if stripline =~ to
+                end
             rescue ex : CompileException
                 raise ex.add_stack file, l
             end
@@ -89,21 +109,37 @@ module Combiner
             if selector == "cat"
                 return cat_file filename
                 
-            elsif selector =~ /^start-end/
+            elsif selector =~ /^from-to/
                 split = selector.split("|")
                 
                 if split.size != 3
                     raise CompileException.new "Wrong number of blocks for start-end selector: #{selector} into #{split}"
                 end
-                return cat_file_from_to split[1], split[2], filename
                 
-            elsif selector =~ /^from-to/
+                case split[0]
+                when "from-to", "from-to-full"
+                    return cat_file_from_to split[1], split[2], filename, search_mode = EqualitySearch
+                when "from-to-substring"
+                    return cat_file_from_to split[1], split[2], filename, search_mode = SubStringSearch
+                when "from-to-regex"
+                    return cat_file_from_to split[1], split[2], filename, search_mode = RegexSearch
+                end
+                
+            elsif selector =~ /^between/
                 split = selector.split("|")
                 
                 if split.size != 3
                     raise CompileException.new "#{line}: Wrong number of blocks for from-to selector: #{selector} into #{split}"
                 end
-                return cat_file_from_to split[1], split[2], filename, include_edges = false
+                
+                case split[0]
+                when "between", "between-full"
+                    return cat_file_from_to split[1], split[2], filename, search_mode = EqualitySearch, include_edges = false
+                when "between-substring"
+                    return cat_file_from_to split[1], split[2], filename, search_mode = SubStringSearch, include_edges = false
+                when "between-regex"
+                    return cat_file_from_to split[1], split[2], filename, search_mode = RegexSearch, include_edges = false
+                end
                 
             elsif selector =~ /^kmodule/
                 split = selector.split("|")
@@ -119,5 +155,5 @@ module Combiner
                 raise CompileException.new "Non-valid »#{selector}« selector given"
             end
         end
-    end
+end
 end # module
