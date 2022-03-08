@@ -47,12 +47,12 @@ module Combiner
     end
 
 	enum SearchMode
-		EqualitySearch
-		SubStringSearch
-		RegexSearch
+		Equality
+		SubString
+		Regex
 	end
 	
-    def cat_file_from_to(from, to, file : Path, include_edges = true, search_mode = EqualitySearch)
+    def cat_file_from_to(from, to, file : Path, include_edges = true, search_mode = SearchMode::Equality)
         result = ""
         in_block = false
         found = false
@@ -62,11 +62,11 @@ module Combiner
             begin
                 stripline = line.strip()
                 case search_mode
-                when EqualitySearch
+                when SearchMode::Equality
                     in_block = true if stripline == from
-                when SubStringSearch
+                when SearchMode::SubString
                     in_block = true if stripline.includes? from
-                when RegexSearch
+                when SearchMode::Regex
                     in_block = true if stripline =~ from
                 end
             
@@ -74,11 +74,11 @@ module Combiner
                 found = true if in_block
                 
                 case search_mode
-                when EqualitySearch
+                when SearchMode::Equality
                     in_block = false if stripline == to
-                when SubStringSearch
+                when SearchMode::SubString
                     in_block = false if stripline.includes? to
-                when RegexSearch
+                when SearchMode::Regex
                     in_block = false if stripline =~ to
                 end
             rescue ex : CompileException
@@ -118,11 +118,13 @@ module Combiner
                 
                 case split[0]
                 when "from-to", "from-to-full"
-                    return cat_file_from_to split[1], split[2], filename, search_mode = EqualitySearch
+                    return cat_file_from_to split[1], split[2], filename, search_mode = SearchMode::Equality
                 when "from-to-substring"
-                    return cat_file_from_to split[1], split[2], filename, search_mode = SubStringSearch
+                    return cat_file_from_to split[1], split[2], filename, search_mode = SearchMode::SubString
                 when "from-to-regex"
-                    return cat_file_from_to split[1], split[2], filename, search_mode = RegexSearch
+                    return cat_file_from_to split[1], split[2], filename, search_mode = SearchMode::Regex
+                else
+                    raise CompileException.new "#{line} Unknown from-to selector: #{split[0]}"
                 end
                 
             elsif selector =~ /^between/
@@ -134,11 +136,13 @@ module Combiner
                 
                 case split[0]
                 when "between", "between-full"
-                    return cat_file_from_to split[1], split[2], filename, search_mode = EqualitySearch, include_edges = false
+                    return cat_file_from_to split[1], split[2], filename, search_mode = SearchMode::Equality, include_edges = false
                 when "between-substring"
-                    return cat_file_from_to split[1], split[2], filename, search_mode = SubStringSearch, include_edges = false
+                    return cat_file_from_to split[1], split[2], filename, search_mode = SearchMode::SubString, include_edges = false
                 when "between-regex"
-                    return cat_file_from_to split[1], split[2], filename, search_mode = RegexSearch, include_edges = false
+                    return cat_file_from_to split[1], split[2], filename, search_mode = SearchMode::Regex, include_edges = false
+                else
+                    raise CompileException.new "#{line} Unknown between selector: #{split[0]}"
                 end
                 
             elsif selector =~ /^kmodule/
