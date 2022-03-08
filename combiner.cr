@@ -60,7 +60,7 @@ module Combiner
         
         File.each_line file do |line|
             begin
-                stripline = line.strip()
+                stripline = line.rstrip()
                 case search_mode
                 when SearchMode::Equality
                     in_block = true if stripline == from
