@@ -1,50 +1,63 @@
 require "./combiner"
+require "./options"
+
+def unnil(a : Array(String) | Nil)
+    if a.nil?
+        [] of String
+    else
+        a
+    end
+end
+
+def unnil(a : Array(Path) | Nil)
+    if a.nil?
+        [] of String
+    else
+        a
+    end
+end
 
 class Marka
-    property filters = [] of Path
-    property silent = true
-    property latex_output = false
-    property beamer_output = false
-    property output_file = "result.pdf"
-    property bibliography : Path | Nil = nil
-    property meta : Path | Nil = nil
-    property extra_pandoc_args = [] of String
+    opts : MarkaOpts
+    def initialize(opts : MarkaOpts)
+        @opts = opts
+    end
     
     def render(file)
-        puts "Running Combiner on #{file}" unless silent
+        puts "Running Combiner on #{file}" unless @opts.silent
         input = Combiner.combine file
 
-        if ! bibliography.nil?
-            puts "Adding bibliography header" unless silent
+        if ! @opts.bibliography.nil?
+            puts "Adding bibliography header" unless @opts.silent
             input += "\n# Bibliography\n"
         end
         
-        puts "Running Pandoc" unless silent
+        puts "Running Pandoc" unless @opts.silent
         pipe = IO::Memory.new input
-        if latex_output
+        if @opts.latex_output
             output = "--to=latex"
         else
-            output = "--output=./#{output_file}"
+            output = "--output=./#{@opts.output_file}"
         end
 
         args = [
             output,
             "--fail-if-warning",
             "--standalone",
-        ] + extra_pandoc_args + filters.map do |f|
+        ] + unnil(@opts.extra_pandoc_args) + unnil(@opts.filters).map do |f|
             "--lua-filter=#{f}"
         end
 
-        if ! meta.nil?
-            args << "--metadata-file=#{meta}"
+        if ! @opts.meta_file.nil?
+            args << "--metadata-file=#{@opts.meta_file}"
         end
-            
-        if ! bibliography.nil?
-            args << "--bibliography=#{bibliography}"
+        
+        if ! @opts.bibliography.nil?
+            args << "--bibliography=#{@opts.bibliography}"
             args << "--citeproc"
         end
 
-        if beamer_output
+        if @opts.beamer_output
             args << "--to=beamer"
         end
 

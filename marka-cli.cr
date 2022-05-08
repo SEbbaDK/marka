@@ -6,11 +6,11 @@ require "inotify"
 require "./marka"
 require "./explorer"
 
-marka = Marka.new
 
 # OPTION PARSING
-
 watch_mode = false
+options_file = nil
+marka_opts = MarkaOpts.new
 
 OptionParser.parse do |p|
     p.banner = "Usage: marka FILE"
@@ -22,15 +22,16 @@ OptionParser.parse do |p|
 
     p.on("-f FILTER", "--filter=FILTER", "Adds filter or filter folder to the pipeline") do |filter|
         filter = Path.new filter 
+        marka_opts.filters = [] of Path if marka_opts.filters.nil?
 
         if Dir.exists? filter
             Dir.each filter do |file|
                 if file.includes? ".lua"
-                    marka.filters << (filter / Path.new file)
+                    marka_opts.filters.not_nil! << (filter / Path.new file)
                 end
             end
         elsif File.exists? filter
-            marka.filters << filter
+            marka_opts.filters.not_nil! << filter
         else
             STDERR.puts "The filter \"#{filter}\" is neither a file nor a folder"
             exit 1
@@ -38,19 +39,19 @@ OptionParser.parse do |p|
     end
     
     p.on("-v", "--verbose", "Enables printing status messages") do
-        marka.silent = false
+        marka_opts.silent = false
     end
     
     p.on("-l", "--latex", "Outputs latex instead of rending to a pdf file") do
-        marka.latex_output = true
+        marka_opts.latex_output = true
     end
     
     p.on("-b", "--beamer", "Outputs in beamer-mode") do
-        marka.beamer_output = true
+        marka_opts.beamer_output = true
     end
     
     p.on("-o FILE", "--output=FILE", "Sets the file that's rendered to (default: result.pdf)") do |file|
-        marka.output_file = file
+        marka_opts.output_file = Path.new file
     end
     
     p.on("-w", "--watch", "Monitor all files included by FILE for changes and rerender automatically") do
@@ -58,7 +59,8 @@ OptionParser.parse do |p|
     end
     
     p.on("--pandoc=OPTION", "Pass an option to pandoc (ie --pandoc=--pdf-engine=xelatex). This can also be handled via the meta.yml method, which is more shareable and recommended.") do |option|
-        marka.extra_pandoc_args << option
+        marka_opts.extra_pandoc_args = [] of String if marka_opts.extra_pandoc_args.nil?
+        marka_opts.extra_pandoc_args.not_nil! << option
     end
     
     p.invalid_option do |f|
@@ -78,23 +80,36 @@ end
 target = Path[ARGV[0]]
 
 bib = target.sibling "bibliography.bib"
-marka.bibliography = bib if File.exists? bib
+marka_opts.bibliography = bib if File.exists? bib
 
 meta = target.sibling "meta.yml"
-marka.meta = meta if File.exists? meta
+marka_opts.meta_file = meta if File.exists? meta
+puts "Found meta file at #{meta}" unless marka_opts.meta_file.nil? || marka_opts.silent
 
-def render(m, t)
+options = target.sibling "options.yml"
+if File.exists? options
+    puts "Found options file at #{options}" unless marka_opts.silent
+    marka = Marka.new (MarkaOpts.default + MarkaOpts.from_file(options) + marka_opts)
+else
+    marka = Marka.new (MarkaOpts.default + marka_opts)
+end
+
+
+def render(m : Marka, t)
     
     begin
         result = m.render t
     rescue ex : Combiner::CompileException
         STDERR.puts ex.stacked_error
         return 1
+    rescue ex : UnsupportedVariable
+        STDERR.puts ex.to_s
+        return 2
     end
     
     if !result.success?
         STDERR.puts "Pandoc failed with status: #{result.exit_code}"
-        return 2
+        return 3
     end
     
     return 0
