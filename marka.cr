@@ -2,19 +2,11 @@ require "./combiner"
 require "./options"
 
 def unnil(a : Array(String) | Nil)
-    if a.nil?
-        [] of String
-    else
-        a
-    end
+    a || [] of String
 end
 
 def unnil(a : Array(Path) | Nil)
-    if a.nil?
-        [] of String
-    else
-        a
-    end
+    a || [] of Path
 end
 
 class Marka
