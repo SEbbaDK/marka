@@ -36,7 +36,7 @@ OptionParser.parse do |p|
             exit 1
         end
     end
-    
+
     p.on("-v", "--verbose", "Enables printing status messages") do
         marka.silent = false
     end
@@ -107,6 +107,9 @@ else
         render marka, target
 
         files = [ target ] + Explorer.explore target
+        marka.meta.try do |m|
+            files += [ m ]
+        end
         
         channel = Channel(Path).new
         

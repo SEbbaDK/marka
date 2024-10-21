@@ -48,6 +48,8 @@ class Marka
             args << "--to=beamer"
         end
 
+        puts "Running pandoc with args: #{args.join(" ")}" unless silent
+
         proc = Process.new(
             "pandoc",
             args,
